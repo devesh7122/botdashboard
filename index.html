@@ -351,7 +351,8 @@
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-slate-500 text-sm font-medium mb-1">Messages Sent</p>
-                                <h3 class="text-3xl font-bold text-slate-800">89,342</h3>
+                                <!-- <h3 class="text-3xl font-bold text-slate-800">89,342</h3> -->
+                                <h3 id="totalMessages" class="text-3xl font-bold text-slate-800">0</h3>
                                 <div class="flex items-center gap-1 mt-2">
                                     <span class="flex items-center text-green-500 text-sm font-medium">
                                         <i data-lucide="trending-up" class="w-4 h-4 mr-1"></i>
@@ -1113,24 +1114,36 @@
         });
     </script>
     <script>
-const API_BASE = "https://mute-water-8cf2.deveshsisodia-11.workers.dev/";
-
-fetch(`${API_BASE}/api/stats/basic`)
-  .then(r => r.json())
-  .then(d => {
-    document.getElementById("totalSubscribers").innerText =
-      d.subscribers.toLocaleString();
-
-    document.getElementById("totalMessages").innerText =
-      d.messages_sent.toLocaleString();
-  })
-  .catch(err => {
-    console.error("Failed to load stats", err);
-  });
+        window.addEventListener("DOMContentLoaded", () => {
+          const API_BASE = "https://mute-water-8cf2.deveshsisodia-11.workers.dev";
+        
+          fetch(`${API_BASE}/api/stats/basic`)
+            .then(r => {
+              if (!r.ok) throw new Error("API error");
+              return r.json();
+            })
+            .then(d => {
+              const subEl = document.getElementById("totalSubscribers");
+              const msgEl = document.getElementById("totalMessages");
+        
+              if (!subEl || !msgEl) {
+                console.error("DOM elements not found");
+                return;
+              }
+        
+              subEl.innerText = d.subscribers.toLocaleString();
+              msgEl.innerText = d.messages_sent.toLocaleString();
+            })
+            .catch(err => {
+              console.error("Failed to load stats", err);
+            });
+        });
 </script>
+
 
 </body>
 
 </html>
+
 
 
