@@ -1129,7 +1129,7 @@
         }
 </script>
 
-    <script>
+    <!-- <script>
         window.addEventListener("DOMContentLoaded", () => {
           const API_BASE = "https://mute-water-8cf2.deveshsisodia-11.workers.dev";
         
@@ -1157,12 +1157,56 @@
               console.error("Failed to load stats", err);
             });
         });
+</script> -->
+    <script>
+const API_BASE = "https://mute-water-8cf2.deveshsisodia-11.workers.dev";
+
+function animateCount(el, start, end, duration = 800) {
+  let startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    const progress = Math.min((ts - startTime) / duration, 1);
+    const value = Math.floor(progress * (end - start) + start);
+    el.innerText = value.toLocaleString();
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch(`${API_BASE}/api/stats/basic`);
+    if (!r.ok) throw new Error("API error");
+
+    const d = await r.json();
+
+    const subEl = document.getElementById("totalSubscribers");
+    const msgEl = document.getElementById("totalMessages");
+
+    animateCount(subEl, Number(subEl.innerText.replace(/,/g, '')) || 0, d.subscribers);
+    animateCount(msgEl, Number(msgEl.innerText.replace(/,/g, '')) || 0, d.messages_sent);
+  } catch (e) {
+    console.error("Failed to refresh stats", e);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  loadStats();
+
+  document.getElementById("refreshStats")
+    ?.addEventListener("click", loadStats);
+
+  // 🔁 auto refresh every 30 seconds
+  setInterval(loadStats, 30000);
+});
 </script>
+
 
 
 </body>
 
 </html>
+
 
 
 
