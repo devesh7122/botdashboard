@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Broadcast Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .sidebar-gradient {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .pulse-ring {
+            position: relative;
+        }
+        
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: inherit;
+            opacity: 0.6;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-sent { background: #10b981; }
+        .status-pending { background: #f59e0b; }
+        .status-failed { background: #ef4444; }
+        .status-scheduled { background: #3b82f6; }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
+        
+        .btn-gradient:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <!-- App Container -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar-gradient w-72 flex-shrink-0 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 -translate-x-full fixed lg:relative z-50 h-full">
+            <!-- Logo -->
+            <div class="p-6 border-b border-slate-700/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-xl flex items-center justify-center">
+                        <i data-lucide="send" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-white font-bold text-lg">TeleBroadcast</h1>
+                        <p class="text-slate-400 text-xs">Pro Dashboard</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Profile -->
+            <div class="px-4 py-4 border-b border-slate-700/50">
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50">
+                    <img src="http://static.photos/people/100x100/42" alt="Admin" class="w-10 h-10 rounded-lg object-cover">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-white font-medium text-sm truncate">Admin User</h3>
+                        <p class="text-slate-400 text-xs">Super Admin</p>
+                    </div>
+                    <div class="status-dot pulse-ring bg-green-500"></div>
+                </div>
+            </div>
+            
+            <!-- Main Navigation -->
+            <nav class="flex-1 overflow-y-auto custom-scrollbar px-3 py-4">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider px-3 mb-3">Main</p>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-white bg-blue-600/20 border border-blue-500/30 mb-1">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 text-blue-400"></i>
+                    <span class="text-sm font-medium">Dashboard</span>
+                </a>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="message-circle" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Messages</span>
+                    <span class="ml-auto bg-violet-500 text-white text-xs px-2 py-0.5 rounded-full">24</span>
+                </a>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Subscribers</span>
+                    <span class="text-slate-400 text-xs ml-auto">12.5K</span>
+                </a>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Schedule</span>
+                    <span class="ml-auto bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">5</span>
+                </a>
+                
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider px-3 mb-3 mt-6">Analytics</p>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Statistics</span>
+                </a>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Live Activity</span>
+                </a>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="map" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Geography</span>
+                </a>
+                
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider px-3 mb-3 mt-6">Management</p>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="bot" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Bots</span>
+                </a>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="template" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Templates</span>
+                </a>
+                
+                <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-colors mb-1">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Settings</span>
+                </a>
+            </nav>
+            
+            <!-- Sidebar Footer -->
+            <div class="p-4 border-t border-slate-700/50">
+                <button class="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 text-sm font-medium">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                    Help & Support
+                </button>
+                <button class="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-slate-400 hover:text-red-400 text-sm font-medium">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <!-- Overlay for mobile sidebar -->
+            <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 lg:hidden z-40 hidden"></div>
+            
+            <!-- Header -->
+            <header class="glass-effect border-b border-slate-200 px-6 py-4 flex items-center justify-between z-30">
+                <div class="flex items-center gap-4">
+                    <button id="sidebarToggle" class="lg:hidden p-2 rounded-lg hover:bg-slate-200">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                    
+                    <!-- Search -->
+                    <div class="relative hidden sm:block">
+                        <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" placeholder="Search messages, subscribers..." 
+                            class="pl-10 pr-4 py-2 w-72 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 text-sm">
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <!-- Quick Action -->
+                    <button onclick="openBroadcastModal()" class="hidden sm:flex items-center gap-2 btn-gradient text-white px-4 py-2 rounded-lg font-medium text-sm hover:shadow-lg transition-shadow">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        New Broadcast
+                    </button>
+                    
+                    <!-- Notifications -->
+                    <button class="relative p-2 rounded-lg hover:bg-slate-200 text-slate-600">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    
+                    <!-- Language -->
+                    <button class="p-2 rounded-lg hover:bg-slate-200 text-slate-600 flex items-center gap-1">
+                        <i data-lucide="globe" class="w-5 h-5"></i>
+                        <span class="text-sm font-medium hidden md:block">EN</span>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                
+                <!-- Page Title & Actions -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">Dashboard Overview</h1>
+                        <p class="text-slate-500 text-sm mt-1">Welcome back! Here's what's happening with your broadcasts.</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <select class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>This Month</option>
+                            <option>This Year</option>
+                        </select>
+                        <button class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
+                            <i data-lucide="download" class="w-5 h-5 text-slate-600"></i>
+                        </button>
+                        <button class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
+                            <i data-lucide="refresh-cw" class="w-5 h-5 text-slate-600"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div class="stats-grid gap-6 mb-8 animate-fade-in">
+                    
+                    <!-- Total Subscribers -->
+                    <div class="card-hover bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-slate-500 text-sm font-medium mb-1">Total Subscribers</p>
+                                <h3 class="text-3xl font-bold text-slate-800">12,458</h3>
+                                <div class="flex items-center gap-1 mt-2">
+                                    <span class="flex items-center text-green-500 text-sm font-medium">
+                                        <i data-lucide="trending-up" class="w-4 h-4 mr-1"></i>
+                                        +12.5%
+                                    </span>
+                                    <span class="text-slate-400 text-xs ml-1">vs last week</span>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center">
+                                <i data-lucide="users" class="w-7 h-7 text-blue-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="h-10">
+                                <canvas id="subscribersMiniChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages Sent -->
+                    <div class="card-hover bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-slate-500 text-sm font-medium mb-1">Messages Sent</p>
+                                <h3 class="text-3xl font-bold text-slate-800">89,342</h3>
+                                <div class="flex items-center gap-1 mt-2">
+                                    <span class="flex items-center text-green-500 text-sm font-medium">
+                                        <i data-lucide="trending-up" class="w-4 h-4 mr-1"></i>
+                                        +23.1%
+                                    </span>
+                                    <span class="text-slate-400 text-xs ml-1">vs last week</span>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 bg-violet-50 rounded-xl flex items-center justify-center">
+                                <i data-lucide="mail" class="w-7 h-7 text-violet-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="h-10">
+                                <canvas id="messagesMiniChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Delivery Rate -->
+                    <div class="card-hover bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-slate-500 text-sm font-medium mb-1">Delivery Rate</p>
+                                <h3 class="text-3xl font-bold text-slate-800">98.6%</h3>
+                                <div class="flex items-center gap-1 mt-2">
+                                    <span class="flex items-center text-green-500 text-sm font-medium">
+                                        <i data-lucide="trending-up" class="w-4 h-4 mr-1"></i>
+                                        +0.8%
+                                    </span>
+                                    <span class="text-slate-400 text-xs ml-1">vs last week</span>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 bg-emerald-50 rounded-xl flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-7 h-7 text-emerald-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 98.6%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Revenue (if applicable) -->
+                    <div class="card-hover bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-slate-500 text-sm font-medium mb-1">Active Campaigns</p>
+                                <h3 class="text-3xl font-bold text-slate-800">8</h3>
+                                <div class="flex items-center gap-1 mt-2">
+                                    <span class="flex items-center text-blue-500 text-sm font-medium">
+                                        <i data-lucide="loader-2" class="w-4 h-4 mr-1 animate-spin"></i>
+                                        3 Running
+                                    </span>
+                                    <span class="text-slate-400 text-xs ml-1">5 scheduled</span>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center">
+                                <i data-lucide="zap" class="w-7 h-7 text-amber-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-2">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded font-medium">Promo</span>
+                            <span class="px-2 py-1 bg-violet-100 text-violet-700 text-xs rounded font-medium">News</span>
+                            <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded font-medium">Update</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="grid lg:grid-cols-3 gap-6 mb-8 animate-fade-in">
+                    
+                    <!-- Main Chart -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800">Message Performance</h3>
+                                <p class="text-slate-500 text-sm">Messages sent vs delivered vs opened</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                                    <span class="text-sm text-slate-600">Sent</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-violet-500"></span>
+                                    <span class="text-sm text-slate-600">Delivered</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                                    <span class="text-sm text-slate-600">Opened</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="height: 300px;">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Device Distribution -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <h3 class="text-lg font-bold text-slate-800 mb-1">Device Distribution</h3>
+                        <p class="text-slate-500 text-sm mb-6">Platforms your subscribers use</p>
+                        
+                        <div class="flex items-center justify-center mb-6" style="height: 200px;">
+                            <canvas id="deviceChart"></canvas>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="smartphone" class="w-4 h-4 text-blue-600"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-700">Mobile</span>
+                                </div>
+                                <span class="text-sm font-bold text-slate-800">68%</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="monitor" class="w-4 h-4 text-violet-600"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-700">Desktop</span>
+                                </div>
+                                <span class="text-sm font-bold text-slate-800">24%</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="tablet" class="w-4 h-4 text-emerald-600"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-700">Tablet</span>
+                                </div>
+                                <span class="text-sm font-bold text-slate-800">8%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity & Quick Actions -->
+                <div class="grid lg:grid-cols-3 gap-6 animate-fade-in">
+                    
+                    <!-- Recent Broadcasts -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <div class="p-6 border-b border-slate-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">Recent Broadcasts</h3>
+                                    <p class="text-slate-500 text-sm">Your messaging activity in the last 24 hours</p>
+                                </div>
+                                <button class="text-blue-600 text-sm font-medium hover:text-blue-700">View All</button>
+                            </div>
+                        </div>
+                        
+                        <div class="divide-y divide-slate-100">
+                            <!-- Broadcast Item 1 -->
+                            <div class="p-4 hover:bg-slate-50 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="megaphone" class="w-5 h-5 text-blue-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="text-sm font-semibold text-slate-800 truncate">Summer Sale Announcement 🌞</h4>
+                                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">Sent</span>
+                                        </div>
+                                        <p class="text-slate-500 text-sm mt-1 truncate">Get 50% off on all products this weekend only!</p>
+                                        <div class="flex items-center gap-4 mt-2">
+                                            <span class="text-xs text-slate-400">
+                                                <i data-lucide="users" class="w-3 h-3 inline mr-1"></i>
+                                                12,458 recipients
+                                            </span>
+                                            <span class="text-xs text-slate-400">
+                                                <i data-lucide="eye" class="w-3 h-3 inline mr-1"></i>
+                                                8,234 opened
+                                            </span>
+                                            <span class="text-xs text-slate-400">2 hours ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button class="p-2 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600">
+                                            <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Broadcast Item 2 -->
+                            <div class="p-4 hover:bg-slate-50 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="bell" class="w-5 h-5 text-violet-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="text-sm font-semibold text-slate-800 truncate">Product Update v2.0</h4>
+                                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">Scheduled</span>
+                                        </div>
+                                        <p class="text-slate-500 text-sm mt-1 truncate">New features and improvements coming your way.</p>
+                                        <div class="flex items-center gap-4 mt-2">
+                                            <span class="text-xs text-slate-400">
+                                                <i data-lucide="users" class="w-3 h-3 inline mr-1"></i>
+                                                All subscribers
+                                            </span>
+                                            <span class="text-xs text-slate-400">
+                                                <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i>
+                                                Tomorrow, 9:00 AM
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button class="p-2 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600">
+                                            <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Broadcast Item 3 -->
+                            <div class="p-4 hover:bg-slate-50 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="gift" class="w-5 h-5 text-amber-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="text-sm font-semibold text-slate-800 truncate">Weekly Newsletter</h4>
+                                            <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">Sending</span>
+                                        </div>
+                                        <p class="text-slate-500 text-sm mt-1 truncate">Your weekly dose of updates and tips.</p>
+                                        <div class="flex items-center gap-4 mt-2">
+                                            <span class="text-xs text-slate-400">
+                                                <i data-lucide="users" class="w-3 h-3 inline mr-1"></i>
+                                                10,234 recipients
+                                            </span>
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-blue-500 rounded-full" style="width: 67%"></div>
+                                                </div>
+                                                <span class="text-xs text-slate-400">67%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button class="p-2 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600">
+                                            <i data-lucide="pause" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Broadcast Item 4 -->
+                            <div class="p-4 hover:bg-slate-50 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="text-sm font-semibold text-slate-800 truncate">Service Maintenance Notice</h4>
+                                            <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">Failed</span>
+                                        </div>
+                                        <p class="text-slate-500 text-sm mt-1 truncate">Scheduled maintenance on July 15th, 2:00 AM UTC.</p>
+                                        <div class="flex items-center gap-4 mt-2">
+                                            <span class="text-xs text-slate-400">
+                                                <i data-lucide="users" class="w-3 h-3 inline mr-1"></i>
+                                                5,123 recipients
+                                            </span>
+                                            <span class="text-xs text-red-500 font-medium">
+                                                <i data-lucide="x-circle" class="w-3 h-3 inline mr-1"></i>
+                                                API Rate Limit
+                                            </span>
+                                            <span class="text-xs text-slate-400">3 hours ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button class="p-2 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600">
+                                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column -->
+                    <div class="space-y-6">
+                        
+                        <!-- Quick Stats -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                            <h3 class="text-lg font-bold text-slate-800 mb-4">Today's Performance</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm text-slate-600">Message Quota</span>
+                                        <span class="text-sm font-semibold text-slate-800">8,420 / 10,000</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-blue-500 to-violet-500 h-2 rounded-full transition-all" style="width: 84.2%"></div>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">Resets in 4 hours</p>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm text-slate-600">Bot Health</span>
+                                        <span class="text-sm font-semibold text-emerald-600">Excellent</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <div class="flex-1 h-2 bg-emerald-500 rounded-full"></div>
+                                        <div class="flex-1 h-2 bg-emerald-500 rounded-full"></div>
+                                        <div class="flex-1 h-2 bg-emerald-500 rounded-full"></div>
+                                        <div class="flex-1 h-2 bg-emerald-500 rounded-full"></div>
+                                        <div class="flex-1 h-2 bg-slate-200 rounded-full"></div>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">99.9% uptime this month</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 pt-6 border-t border-slate-100">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-slate-800">234</p>
+                                        <p class="text-xs text-slate-500">New Today</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-slate-800">18</p>
+                                        <p class="text-xs text-slate-500">Unsubscribed</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Top Performing -->
+                        <div class="bg-gradient-to-br from-violet-600 to-blue-600 rounded-2xl p-6 text-white">
+                            <h3 class="text-lg font-bold mb-4">Top Template 🔥</h3>
+                            <div class="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="star" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-sm">Welcome Series</h4>
+                                        <p class="text-white/70 text-xs">34% open rate</p>
+                                    </div>
+                                </div>
+                                <p class="text-white/80 text-sm leading-relaxed">"Welcome to our community! Here's everything you need to get started..."</p>
+                            </div>
+                            <button class="w-full mt-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors">
+                                Use This Template
+                            </button>
+                        </div>
+                        
+                        <!-- Upcoming Schedule -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                            <h3 class="text-lg font-bold text-slate-800 mb-4">Up Next</h3>
+                            
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-slate-800">Weekly Digest</p>
+                                        <p class="text-xs text-slate-500">Tomorrow, 9:00 AM</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-violet-50 rounded-xl">
+                                    <div class="w-2 h-2 bg-violet-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-slate-800">Holiday Promo</p>
+                                        <p class="text-xs text-slate-500">Jul 20, 10:00 AM</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="w-full mt-4 py-2.5 border-2 border-dashed border-slate-200 hover:border-blue-400 hover:text-blue-500 rounded-xl text-slate-400 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                Schedule New
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <footer class="mt-8 pt-8 border-t border-slate-200">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+                        <p>© 2024 TeleBroadcast Pro. All rights reserved.</p>
+                        <div class="flex items-center gap-6">
+                            <a href="#" class="hover:text-slate-700">Documentation</a>
+                            <a href="#" class="hover:text-slate-700">API Reference</a>
+                            <a href="#" class="hover:text-slate-700">Support</a>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </main>
+    </div>
+    
+    <!-- New Broadcast Modal -->
+    <div id="broadcastModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeBroadcastModal()"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-out" id="modalPanel">
+            <div class="flex flex-col h-full">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">New Broadcast</h2>
+                        <p class="text-slate-500 text-sm">Create and schedule your message</p>
+                    </div>
+                    <button onclick="closeBroadcastModal()" class="p-2 hover:bg-slate-100 rounded-lg">
+                        <i data-lucide="x" class="w-5 h-5 text-slate-600"></i>
+                    </button>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <form id="broadcastForm" class="space-y-6">
+                        <!-- Template Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-3">Start from Template</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <button type="button" class="template-btn p-3 border-2 border-blue-500 bg-blue-50 rounded-xl text-left transition-all">
+                                    <i data-lucide="mail" class="w-5 h-5 text-blue-500 mb-2"></i>
+                                    <span class="text-sm font-medium text-slate-800">Blank</span>
+                                </button>
+                                <button type="button" class="template-btn p-3 border-2 border-slate-200 hover:border-slate-300 rounded-xl text-left transition-all">
+                                    <i data-lucide="megaphone" class="w-5 h-5 text-violet-500 mb-2"></i>
+                                    <span class="text-sm font-medium text-slate-800">Promotion</span>
+                                </button>
+                                <button type="button" class="template-btn p-3 border-2 border-slate-200 hover:border-slate-300 rounded-xl text-left transition-all">
+                                    <i data-lucide="bell" class="w-5 h-5 text-amber-500 mb-2"></i>
+                                    <span class="text-sm font-medium text-slate-800">Announcement</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Recipients -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-3">Recipients</label>
+                            <div class="space-y-3">
+                                <label class="flex items-center gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 transition-colors">
+                                    <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+                                    <div class="flex-1">
+                                        <p class="font-medium text-slate-800">All Subscribers</p>
+                                        <p class="text-sm text-slate-500">12,458 active subscribers</p>
+                                    </div>
+                                    <span class="text-sm text-slate-400">12,458</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+                                    <div class="flex-1">
+                                        <p class="font-medium text-slate-800">VIP Members</p>
+                                        <p class="text-sm text-slate-500">Premium tier subscribers</p>
+                                    </div>
+                                    <span class="text-sm text-slate-400">2,340</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Message Content -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-3">Message</label>
+                            <div class="space-y-3">
+                                <input type="text" placeholder="Message title (optional)" 
+                                    class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <textarea rows="6" placeholder="Type your message here... Supports Markdown formatting" 
+                                    class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+                            </div>
+                            <div class="flex items-center gap-2 mt-3">
+                                <button type="button" class="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Add Image">
+                                    <i data-lucide="image" class="w-5 h-5"></i>
+                                </button>
+                                <button type="button" class="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Add Button">
+                                    <i data-lucide="square" class="w-5 h-5"></i>
+                                </button>
+                                <button type="button" class="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Add Emoji">
+                                    <i data-lucide="smile" class="w-5 h-5"></i>
+                                </button>
+                                <button type="button" class="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Add Variable">
+                                    <i data-lucide="variable" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Preview -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-3">Preview</label>
+                            <div class="bg-slate-100 rounded-xl p-4 max-w-sm">
+                                <div class="bg-white rounded-2xl rounded-tl-lg shadow-sm p-4">
+                                    <p class="text-slate-800 text-sm leading-relaxed">Your message preview will appear here...</p>
+                                    <span class="text-xs text-slate-400 mt-2 block">10:23 AM</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Schedule -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-3">When to Send</label>
+                            <div class="flex gap-3 flex-wrap">
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="schedule" checked class="w-4 h-4 text-blue-600">
+                                    <span class="text-sm text-slate-700">Send Now</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="schedule" class="w-4 h-4 text-blue-600">
+                                    <span class="text-sm text-slate-700">Schedule</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="schedule" class="w-4 h-4 text-blue-600">
+                                    <span class="text-sm text-slate-700">Recurring</span>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="p-6 border-t border-slate-200 bg-slate-50">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-slate-500">12,458 recipients · <span class="font-medium">1,245</span> messages estimated</p>
+                        <div class="flex items-center gap-3">
+                            <button onclick="closeBroadcastModal()" class="px-4 py-2.5 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" form="broadcastForm" class="px-6 py-2.5 btn-gradient text-white font-medium rounded-lg hover:shadow-lg transition-shadow flex items-center gap-2">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                                Send Broadcast
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+        
+        // Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        });
+        
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        });
+        
+        // Modal Functions
+        function openBroadcastModal() {
+            const modal = document.getElementById('broadcastModal');
+            const panel = document.getElementById('modalPanel');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                panel.classList.remove('translate-x-full');
+            }, 10);
+        }
+        
+        function closeBroadcastModal() {
+            const modal = document.getElementById('broadcastModal');
+            const panel = document.getElementById('modalPanel');
+            panel.classList.add('translate-x-full');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+        
+        // Template Selection
+        document.querySelectorAll('.template-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.template-btn').forEach(b => {
+                    b.classList.remove('border-blue-500', 'bg-blue-50');
+                    b.classList.add('border-slate-200');
+                });
+                btn.classList.remove('border-slate-200');
+                btn.classList.add('border-blue-500', 'bg-blue-50');
+            });
+        });
+        
+        // Form Submission
+        document.getElementById('broadcastForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            closeBroadcastModal();
+            // Show success toast
+            showToast('Broadcast sent successfully!', 'success');
+        });
+        
+        // Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 animate-slide-in ${
+                type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            }`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info'}" class="w-5 h-5"></i>
+                    ${message}
+                </div>
+            `;
+            document.body.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Charts
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b';
+        
+        // Subscribers Mini Chart
+        const subscribersCtx = document.getElementById('subscribersMiniChart').getContext('2d');
+        new Chart(subscribersCtx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    data: [120, 190, 150, 250, 220, 300, 280],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+        
+        // Messages Mini Chart
+        const messagesCtx = document.getElementById('messagesMiniChart').getContext('2d');
+        new Chart(messagesCtx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    data: [850, 920, 800, 1100, 950, 1200, 1050],
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+        
+        // Main Chart
+        const mainCtx = document.getElementById('mainChart').getContext('2d');
+        new Chart(mainCtx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [
+                    {
+                        label: 'Sent',
+                        data: [12000, 19000, 15000, 25000, 22000, 30000, 28000],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3
+                    },
+                    {
+                        label: 'Delivered',
+                        data: [11000, 18000, 14500, 24000, 21500, 28500, 27500],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3
+                    },
+                    {
+                        label: 'Opened',
+                        data: [8500, 14000, 11000, 19000, 17000, 23000, 21000],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        display: true,
+                        grid: {
+                            color: '#f1f5f9'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Device Distribution Chart
+        const deviceCtx = document.getElementById('deviceChart').getContext('2d');
+        new Chart(deviceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Mobile', 'Desktop', 'Tablet'],
+                datasets: [{
+                    data: [68, 24, 8],
+                    backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981'],
+                    borderWidth: 0,
+                    cutout: '70%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
