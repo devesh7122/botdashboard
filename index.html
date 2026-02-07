@@ -1114,6 +1114,22 @@
         });
     </script>
     <script>
+        function animateCount(el, start, end, duration = 800) {
+          let startTime = null;
+        
+          function step(ts) {
+            if (!startTime) startTime = ts;
+            const progress = Math.min((ts - startTime) / duration, 1);
+            const value = Math.floor(progress * (end - start) + start);
+            el.innerText = value.toLocaleString();
+            if (progress < 1) requestAnimationFrame(step);
+          }
+        
+          requestAnimationFrame(step);
+        }
+</script>
+
+    <script>
         window.addEventListener("DOMContentLoaded", () => {
           const API_BASE = "https://mute-water-8cf2.deveshsisodia-11.workers.dev";
         
@@ -1131,8 +1147,11 @@
                 return;
               }
         
-              subEl.innerText = d.subscribers.toLocaleString();
-              msgEl.innerText = d.messages_sent.toLocaleString();
+              // subEl.innerText = d.subscribers.toLocaleString();
+              // msgEl.innerText = d.messages_sent.toLocaleString();
+                animateCount(subEl, 0, d.subscribers);
+                animateCount(msgEl, 0, d.messages_sent);
+
             })
             .catch(err => {
               console.error("Failed to load stats", err);
@@ -1144,6 +1163,7 @@
 </body>
 
 </html>
+
 
 
 
